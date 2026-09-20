@@ -19,7 +19,7 @@
         <img src="./assets/icon-192.png" alt="" />
         <div>
           <h1>Sentence Reader Lite</h1>
-          <p>iOS PWA · No API · Local Only</p>
+          <p>iOS PWA · No API · Manual AI Bridge</p>
         </div>
       </div>
       <button id="backupBtn" class="ghost small">백업</button>
@@ -32,13 +32,14 @@
       <button class="tab" data-view="expressions">표현</button>
       <button class="tab" data-view="notes">노트</button>
       <button class="tab" data-view="review">복습</button>
+      <button class="tab" data-view="ai">AI연계</button>
       <button class="tab" data-view="settings">설정</button>
     </nav>
 
     <main>
       <section id="todayView" class="view active">
         <div class="hero">
-          <div class="safe-badge">API 없음 · 외부 전송 없음 · iPad 내부 저장</div>
+          <div class="safe-badge">API 없음 · 자동 전송 없음 · 수동 AI 연계</div>
           <h2>NYT 본문을 복사해서 읽는 영어 학습 리더</h2>
           <p>Safari 또는 NYT 앱에서 본문을 복사한 뒤, 이 앱에 붙여넣어 읽고 단어·표현·노트를 저장합니다.</p>
           <div class="hero-actions">
@@ -98,6 +99,9 @@
           <div class="reader-bottom-actions">
             <button id="saveSelectedExpressionBtn" class="secondary">선택 문장/표현 저장</button>
             <button id="saveSelectedNoteBtn" class="ghost">선택 문장 노트</button>
+            <button id="copySelectedAiPromptBtn" class="primary">선택문장 AI분석 복사</button>
+            <button id="copyArticleAiPromptBtn" class="secondary">기사 AI분석 복사</button>
+            <button id="pasteAiAnswerBtn" class="ghost">AI답변 저장</button>
           </div>
         </article>
       </section>
@@ -127,12 +131,59 @@
         <div id="reviewBox" class="review-box"></div>
       </section>
 
+
+      <section id="aiView" class="view">
+        <div class="panel">
+          <h2>수동 AI 분석 연계</h2>
+          <p class="muted">API를 쓰지 않습니다. 선택 문장이나 기사 전체를 분석할 프롬프트만 복사하고, 사용자가 직접 Gemini/ChatGPT에 붙여넣습니다.</p>
+          <div class="ai-flow">
+            <div><b>1</b><span>리더에서 문장 선택</span></div>
+            <div><b>2</b><span>분석 프롬프트 복사</span></div>
+            <div><b>3</b><span>Gemini/ChatGPT에 직접 붙여넣기</span></div>
+            <div><b>4</b><span>답변 복사 후 이 앱에 붙여넣어 노트 저장</span></div>
+          </div>
+          <div class="row">
+            <button id="copySelectedAiPromptBtn2" class="primary">선택문장 프롬프트 복사</button>
+            <button id="copyArticleAiPromptBtn2" class="secondary">현재 기사 프롬프트 복사</button>
+            <button id="pasteAiAnswerBtn2" class="ghost">AI 답변 붙여넣기</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>답변 형식</h2>
+          <p class="muted">Gemini/ChatGPT가 아래 형식으로 답하도록 프롬프트를 구성했습니다. 앱은 이 구분값을 학습노트에 정리해 저장합니다.</p>
+          <pre class="format-sample">===해석===
+...
+
+===문장구조===
+...
+
+===핵심표현===
+...
+
+===문법===
+...
+
+===뉘앙스===
+...
+
+===학습메모===
+...</pre>
+        </div>
+
+        <div class="panel">
+          <h2>보안 안내</h2>
+          <p class="muted">이 앱은 AI 서비스로 내용을 자동 전송하지 않습니다. 다만 사용자가 Gemini/ChatGPT에 직접 붙여넣는 순간 해당 문장이나 기사 내용은 그 외부 서비스에 입력됩니다.</p>
+        </div>
+      </section>
+
       <section id="settingsView" class="view">
         <div class="panel">
           <h2>보안 구조</h2>
           <div class="security-list">
             <div><b>API Key 없음</b><span>OpenAI/Gemini 키 입력·저장 기능이 없습니다.</span></div>
-            <div><b>외부 전송 없음</b><span>기사·노트·단어를 서버로 보내지 않습니다.</span></div>
+            <div><b>자동 외부 전송 없음</b><span>앱이 기사·노트·단어를 서버로 자동 전송하지 않습니다.</span></div>
+            <div><b>수동 AI 연계</b><span>사용자가 복사한 프롬프트를 Gemini/ChatGPT에 직접 붙여넣는 방식만 지원합니다.</span></div>
             <div><b>로컬 저장</b><span>데이터는 현재 기기의 브라우저 저장소에 저장됩니다.</span></div>
             <div><b>백업 주의</b><span>JSON 백업 파일에는 기사·노트가 들어 있으므로 직접 관리해야 합니다.</span></div>
           </div>
@@ -177,6 +228,7 @@
     <div class="row">
       <button id="saveWordBtn" class="secondary small">단어 저장</button>
       <button id="saveWordNoteBtn" class="ghost small">노트로 저장</button>
+      <button id="copyWordAiPromptBtn" class="primary small">AI 단어분석 복사</button>
     </div>
   </div>
 

@@ -523,3 +523,71 @@ code {
   .modal-backdrop { padding: 0; align-items: flex-end; }
   .modal { border-radius: 24px 24px 0 0; max-height: 92vh; }
 }
+
+
+/* v0.3: 수동 AI 연계 */
+.ai-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin: 12px 0 14px;
+}
+
+.ai-flow div {
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.ai-flow b {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.ai-flow span {
+  display: block;
+  color: #344054;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.format-sample {
+  margin: 0;
+  border: 1px solid var(--line);
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  overflow: auto;
+  line-height: 1.55;
+  font-size: 13px;
+}
+
+.ai-result-preview {
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .ai-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .ai-flow {
+    grid-template-columns: 1fr;
+  }
+}

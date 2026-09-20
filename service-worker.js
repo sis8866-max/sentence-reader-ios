@@ -1,4 +1,4 @@
-const CACHE_NAME = "sentence-reader-lite-ios-v0-2-no-api";
+const CACHE_NAME = "sentence-reader-lite-ios-v0-3-manual-ai";
 const ASSETS = [
   "./",
   "./index.html",

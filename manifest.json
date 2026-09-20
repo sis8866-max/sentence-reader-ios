@@ -7,7 +7,7 @@
   "orientation": "portrait",
   "background_color": "#f6f8fc",
   "theme_color": "#2f6df6",
-  "description": "No-API local English article reader for iPad: paste articles, read, save words, notes, and review.",
+  "description": "No-API local English article reader for iPad with manual Gemini/ChatGPT bridge.",
   "icons": [
     {
       "src": "./assets/icon-192.png",

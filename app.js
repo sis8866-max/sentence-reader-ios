@@ -225,14 +225,14 @@ const BUILTIN_DICT = {
   }
 };
 
-// v0.2 no-api build:
+// v0.3 no-api manual AI bridge:
 // - No API key field
 // - No direct AI service call
 // - No external analytics/CDN
-// - No AI prompt copy menu
+// - Manual prompt copy and answer paste only
 // - User data stays in localStorage unless the user exports JSON manually.
 
-const STORAGE_KEY = "sentence_reader_lite_ios_v0_2_no_api";
+const STORAGE_KEY = "sentence_reader_lite_ios_v0_3_manual_ai";
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -817,6 +817,273 @@ function markReview(status) {
   renderReviewCard(false);
 }
 
+
+function currentArticle() {
+  return state.data.articles.find(a => a.id === state.currentArticleId) || state.data.articles[0] || null;
+}
+
+function getSelectedOrArticleSnippet() {
+  const text = selectedText();
+  if (text) return text;
+  const article = currentArticle();
+  return article ? snippet(article.body, 1200) : "";
+}
+
+function makeSentenceAnalysisPrompt(sentence, article) {
+  const articleInfo = article
+    ? `기사 제목: ${article.title || ""}\n출처: ${article.source || ""}\nURL: ${article.url || ""}\n\n`
+    : "";
+
+  return `${articleInfo}다음 영어 문장을 한국어 학습자 관점에서 분석해 주세요.
+
+반드시 아래 구분 형식을 지켜 주세요.
+
+===해석===
+자연스러운 한국어 해석
+
+===문장구조===
+주어/동사/목적어/수식어 등 구조 설명
+
+===핵심표현===
+중요 표현 3~5개
+- 영어 표현: 한국어 뜻 / 쓰임
+
+===문법===
+문법 포인트 설명
+
+===뉘앙스===
+직역으로 놓치기 쉬운 의미, 어감, 문체
+
+===학습메모===
+한국어 학습자가 기억하면 좋은 점
+
+문장:
+${sentence}`;
+}
+
+function makeArticleAnalysisPrompt(article) {
+  if (!article) return "";
+
+  return `다음 영어 기사 본문을 한국어 학습자 관점에서 정리해 주세요.
+
+반드시 아래 구분 형식을 지켜 주세요.
+
+===기사요약===
+핵심 내용을 한국어로 간단히 요약
+
+===핵심문장===
+학습 가치가 높은 영어 문장 5개와 한국어 해석
+
+===핵심표현===
+중요 표현 8~12개
+- 영어 표현: 한국어 뜻 / 쓰임 / 짧은 예문
+
+===문장구조===
+어려운 문장 구조 설명
+
+===문법===
+주요 문법 포인트
+
+===뉘앙스===
+기사의 문체, 어감, 표현상 주의점
+
+===학습메모===
+이 기사를 공부할 때 기억할 점
+
+기사 제목: ${article.title || ""}
+출처: ${article.source || ""}
+URL: ${article.url || ""}
+
+본문:
+${article.body || ""}`;
+}
+
+function makeWordAnalysisPrompt(word, article) {
+  return `영어 단어 "${word}"를 한국어 학습자 관점에서 분석해 주세요.
+
+반드시 아래 구분 형식을 지켜 주세요.
+
+===발음===
+미국식 IPA, 영국식 IPA, 한국어식 발음 힌트
+
+===뜻===
+품사별 핵심 뜻과 문맥상 뜻
+
+===예문===
+기본 예문과 한국어 해석
+
+===실전표현===
+실제 대화나 기사에서 자주 쓰이는 표현
+
+===뉘앙스===
+비슷한 단어와의 차이, 어감
+
+===학습메모===
+외우거나 사용할 때 주의할 점
+
+문맥:
+${article ? snippet(article.body, 1200) : ""}`;
+}
+
+async function copyToClipboard(text, okMessage = "복사 완료") {
+  if (!text) {
+    toast("복사할 내용이 없습니다.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    toast(okMessage);
+  } catch {
+    openModal("직접 복사", `
+      <p class="muted">클립보드 권한 문제로 자동 복사하지 못했습니다. 아래 내용을 직접 선택해 복사하세요.</p>
+      <textarea rows="12" id="manualCopyText">${escapeHtml(text)}</textarea>
+    `, () => closeModal());
+  }
+}
+
+function copySelectedAiPrompt() {
+  const sentence = selectedText();
+
+  if (!sentence) {
+    toast("분석할 문장을 먼저 선택하세요.");
+    return;
+  }
+
+  copyToClipboard(
+    makeSentenceAnalysisPrompt(sentence, currentArticle()),
+    "선택 문장 AI 분석 프롬프트를 복사했습니다."
+  );
+}
+
+function copyArticleAiPrompt() {
+  const article = currentArticle();
+
+  if (!article) {
+    toast("분석할 기사가 없습니다.");
+    return;
+  }
+
+  copyToClipboard(
+    makeArticleAnalysisPrompt(article),
+    "기사 AI 분석 프롬프트를 복사했습니다."
+  );
+}
+
+function copyWordAiPrompt() {
+  const word = state.currentWord;
+
+  if (!word) {
+    toast("단어를 먼저 선택하세요.");
+    return;
+  }
+
+  copyToClipboard(
+    makeWordAnalysisPrompt(word, currentArticle()),
+    "단어 AI 분석 프롬프트를 복사했습니다."
+  );
+}
+
+function parseAiAnswerSections(text) {
+  const raw = String(text || "").trim();
+  const headings = [
+    "해석", "문장구조", "핵심표현", "문법", "뉘앙스", "학습메모",
+    "기사요약", "핵심문장", "발음", "뜻", "예문", "실전표현"
+  ];
+
+  const result = {};
+  const regex = /^===(.+?)===\s*$/gm;
+  const matches = [...raw.matchAll(regex)];
+
+  if (!matches.length) {
+    return { raw };
+  }
+
+  for (let i = 0; i < matches.length; i++) {
+    const heading = matches[i][1].trim();
+    const start = matches[i].index + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : raw.length;
+    if (headings.includes(heading)) {
+      result[heading] = raw.slice(start, end).trim();
+    }
+  }
+
+  result.raw = raw;
+  return result;
+}
+
+function buildAiNoteFromAnswer(targetText, aiAnswer) {
+  const sections = parseAiAnswerSections(aiAnswer);
+  const article = currentArticle();
+
+  const titleBase = targetText
+    ? `AI 분석: ${snippet(targetText, 42)}`
+    : article
+      ? `AI 기사분석: ${snippet(article.title, 42)}`
+      : "AI 분석 노트";
+
+  const summary =
+    sections["해석"] ||
+    sections["기사요약"] ||
+    sections["뜻"] ||
+    snippet(aiAnswer, 120);
+
+  const ordered = [
+    "해석", "기사요약", "발음", "뜻", "문장구조", "핵심문장",
+    "핵심표현", "문법", "예문", "실전표현", "뉘앙스", "학습메모"
+  ];
+
+  const answer = ordered
+    .filter(key => sections[key])
+    .map(key => `===${key}===\n${sections[key]}`)
+    .join("\n\n") || sections.raw || aiAnswer;
+
+  return {
+    id: uid("note"),
+    title: titleBase,
+    question: targetText || (article ? article.title : "AI 분석"),
+    summary,
+    answer,
+    articleId: article?.id || null,
+    createdAt: new Date().toISOString()
+  };
+}
+
+async function pasteAiAnswerToNote() {
+  const targetText = selectedText() || "";
+  let clip = "";
+
+  try {
+    clip = await navigator.clipboard.readText();
+  } catch {
+    clip = "";
+  }
+
+  openModal("AI 답변 붙여넣기", `
+    <p class="muted">Gemini/ChatGPT 답변을 아래에 붙여넣으면 학습노트로 저장합니다.</p>
+    <label>분석 대상</label>
+    <input id="aiTargetText" value="${escapeHtml(targetText || currentArticle()?.title || "")}" />
+    <label>AI 답변</label>
+    <textarea id="aiAnswerText" rows="12" placeholder="Gemini/ChatGPT 답변을 붙여넣으세요.">${escapeHtml(clip || "")}</textarea>
+  `, () => {
+    const target = $("#aiTargetText").value.trim();
+    const answer = $("#aiAnswerText").value.trim();
+
+    if (!answer) {
+      toast("AI 답변을 붙여넣어 주세요.");
+      return;
+    }
+
+    const note = buildAiNoteFromAnswer(target, answer);
+    state.data.notes.unshift(note);
+    saveData();
+    closeModal();
+    toast("AI 답변을 학습노트로 저장했습니다.");
+    setView("notes");
+  });
+}
+
+
 function exportJson() {
   const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -909,6 +1176,13 @@ $("#saveSelectedNoteBtn").addEventListener("click", () => {
 $("#startReviewBtn").addEventListener("click", () => startReview());
 $("#saveWordBtn").addEventListener("click", saveCurrentWord);
 $("#saveWordNoteBtn").addEventListener("click", saveWordAsNote);
+$("#copyWordAiPromptBtn").addEventListener("click", copyWordAiPrompt);
+$("#copySelectedAiPromptBtn").addEventListener("click", copySelectedAiPrompt);
+$("#copyArticleAiPromptBtn").addEventListener("click", copyArticleAiPrompt);
+$("#pasteAiAnswerBtn").addEventListener("click", pasteAiAnswerToNote);
+$("#copySelectedAiPromptBtn2").addEventListener("click", copySelectedAiPrompt);
+$("#copyArticleAiPromptBtn2").addEventListener("click", copyArticleAiPrompt);
+$("#pasteAiAnswerBtn2").addEventListener("click", pasteAiAnswerToNote);
 $("#closeDictBtn").addEventListener("click", closeDictionary);
 $("#closeModalBtn").addEventListener("click", closeModal);
 $("#modalCancelBtn").addEventListener("click", closeModal);
